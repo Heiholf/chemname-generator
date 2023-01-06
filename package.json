@@ -1,0 +1,19 @@
+{
+	"name": "chemname-generator",
+	"version": "0.0.1",
+	"main": "index.js",
+	"author": "Florian Reinecke",
+	"license": "GNU GPLv3",
+	"type": "module",
+	"devDependencies": {
+		"@types/node": "^18.11.18",
+		"ts-node": "^10.9.1"
+	},
+	"scripts": {
+		"start": "ts-node ./code/numbers.ts"
+	},
+	"dependencies": {
+		"typescript": "^4.9.4"
+	},
+	"description": ""
+}
