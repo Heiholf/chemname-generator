@@ -1,93 +1,64 @@
 import { reverseString } from './functions'
 import Exceptions from './exceptions'
+import Languages, { LanguageSettings } from './languages'
 
-const tens_ending = 'deca'
-const thirty_ending = 'triaconta'
-const forty_to_ninty_ending = 'conta'
-const twentys_name = 'icosa'
-const twentys_ending = 'cosa'
-const hundreds_name = 'hecta'
-const hundreds_ending = 'cta'
-const thousands_name = 'kilia'
-const thousands_ending = 'lia'
-
-type NumberStringDict = Record<number, string>
-
-const one_digit_names: NumberStringDict = {
-  0: '',
-  1: 'hen',
-  2: 'do',
-  3: 'tri',
-  4: 'tetra',
-  5: 'penta',
-  6: 'hexa',
-  7: 'hepta',
-  8: 'octa',
-  9: 'nona',
-}
-
-const lone_one_digit_names: NumberStringDict = {
-  0: '',
-  1: 'mono',
-  2: 'di',
-  3: 'tri',
-  4: 'tetra',
-  5: 'penta',
-  6: 'hexa',
-  7: 'hepta',
-  8: 'octa',
-  9: 'nona',
-}
-
-const number_exceptions: NumberStringDict = {
-  11: 'undeca',
-}
-
-function one_digit_number_to_string(num: number, lone: boolean = true): string {
+function one_digit_number_to_string(
+  num: number,
+  lone: boolean = true,
+  language: LanguageSettings = Languages.English
+): string {
   if (lone) {
-    return lone_one_digit_names[num]
+    return language.lone_one_digit_names[num]
   }
-  return one_digit_names[num]
+  return language.one_digit_names[num]
 }
 
 function two_digit_number_to_string(
   tens: number,
   ones: number,
-  lone: boolean = true
+  lone: boolean = true,
+  language: LanguageSettings = Languages.English
 ): string {
   if (tens == 0) {
-    return one_digit_number_to_string(ones, lone)
+    return one_digit_number_to_string(ones, lone, language)
   }
   if (tens == 1) {
-    return one_digit_names[ones] + tens_ending
+    return language.one_digit_names[ones] + language.tens_ending
   }
   if (tens == 2) {
     if (ones <= 1) {
-      return one_digit_names[ones] + twentys_name
+      return language.one_digit_names[ones] + language.twentys_name
     }
-    return one_digit_names[ones] + twentys_ending
+    return language.one_digit_names[ones] + language.twentys_ending
   }
   if (tens == 3) {
-    return one_digit_names[ones] + thirty_ending
+    return language.one_digit_names[ones] + language.thirty_ending
   }
-  return one_digit_names[ones] + one_digit_names[tens] + forty_to_ninty_ending
+  return (
+    language.one_digit_names[ones] +
+    language.one_digit_names[tens] +
+    language.forty_to_ninty_ending
+  )
 }
 
 function three_digit_number_to_string(
   hundreds: number,
   tens: number,
-  ones: number
+  ones: number,
+  language: LanguageSettings = Languages.English
 ): string {
   if (hundreds == 0) {
-    return two_digit_number_to_string(tens, ones)
+    return two_digit_number_to_string(tens, ones, true, language)
   }
   if (hundreds === 1) {
-    return two_digit_number_to_string(tens, ones, false) + hundreds_name
+    return (
+      two_digit_number_to_string(tens, ones, false) + language.hundreds_name
+    )
   }
   return (
-    two_digit_number_to_string(tens, ones) +
-    one_digit_number_to_string(hundreds) +
-    hundreds_ending
+    two_digit_number_to_string(tens, ones, true, language) +
+    one_digit_number_to_string(hundreds, true, language) +
+    language.hundreds_ending
   )
 }
 
@@ -95,30 +66,37 @@ function four_digit_number_to_string(
   thousands: number,
   hundreds: number,
   tens: number,
-  ones: number
+  ones: number,
+  language: LanguageSettings = Languages.English
 ): string {
   if (thousands == 0) {
-    return three_digit_number_to_string(hundreds, tens, ones)
+    return three_digit_number_to_string(hundreds, tens, ones, language)
   }
   if (thousands === 1) {
-    return three_digit_number_to_string(hundreds, tens, ones) + thousands_name
+    return (
+      three_digit_number_to_string(hundreds, tens, ones, language) +
+      language.thousands_name
+    )
   }
   return (
-    three_digit_number_to_string(hundreds, tens, ones) +
-    one_digit_number_to_string(thousands) +
-    thousands_ending
+    three_digit_number_to_string(hundreds, tens, ones, language) +
+    one_digit_number_to_string(thousands, true, language) +
+    language.thousands_ending
   )
 }
 
-function number_to_string(num: number): string {
+function number_to_string(
+  num: number,
+  language: LanguageSettings = Languages.English
+): string {
   if (num % 1 != 0 || num < 0) {
     throw Exceptions.NonPositiveIntegerNumberInName
   }
   if (num >= 10_000) {
     return num.toString() + '-'
   }
-  if (num in number_exceptions) {
-    return number_exceptions[num]
+  if (num in language.number_exceptions) {
+    return language.number_exceptions[num]
   }
   let digits: Array<number> = num
     .toString()
