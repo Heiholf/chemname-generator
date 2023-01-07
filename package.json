@@ -4,7 +4,6 @@
 	"main": "index.js",
 	"author": "Florian Reinecke",
 	"license": "GNU GPLv3",
-	"type": "module",
 	"devDependencies": {
 		"@types/node": "^18.11.18",
 		"ts-node": "^10.9.1"
