@@ -157,7 +157,9 @@ const English: LanguageSettings = {
     Ts: 'Tennessine',
     Og: 'Oganesson',
   },
-  alcane_ending: 'ne',
+  alcane_ending: 'ane',
+  alcene_ending: 'ene',
+  alcine_ending: 'ine',
   alcane_exceptions: {
     1: 'metha',
     2: 'etha',

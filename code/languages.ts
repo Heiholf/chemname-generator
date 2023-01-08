@@ -16,6 +16,8 @@ export interface LanguageSettings {
   lone_one_digit_names: Record<number, string>
   atom_names: Record<ElementSymbol, string>
   alcane_ending: string
+  alcene_ending: string
+  alcine_ending: string
   alcane_exceptions: Record<number, string>
 }
 
