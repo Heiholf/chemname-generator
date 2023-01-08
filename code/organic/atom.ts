@@ -1,5 +1,5 @@
-import { ElementSymbol } from './constants'
-import { elementSymbol_to_name } from './names'
+import { ElementSymbol } from '../constants'
+import { elementSymbol_to_name } from '../names'
 
 class Atom {
   name: string
@@ -10,3 +10,5 @@ class Atom {
     this.name = elementSymbol_to_name(symbol)
   }
 }
+
+export default Atom

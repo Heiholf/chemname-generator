@@ -1,5 +1,4 @@
 import English from './languages/english'
-import Deutsch from './languages/deutsch'
 import { ElementSymbol } from './constants'
 
 export interface LanguageSettings {
@@ -16,16 +15,16 @@ export interface LanguageSettings {
   one_digit_names: Record<number, string>
   lone_one_digit_names: Record<number, string>
   atom_names: Record<ElementSymbol, string>
+  alcane_ending: string
+  alcane_exceptions: Record<number, string>
 }
 
 interface LanguagesInterface {
   English: LanguageSettings
-  Deutsch: LanguageSettings
 }
 
 const Languages: LanguagesInterface = {
   English,
-  Deutsch,
 }
 
 export default Languages
