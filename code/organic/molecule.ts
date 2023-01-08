@@ -15,11 +15,15 @@ type BondTypeCallback<T> = {
   triple: T
 }
 
+type BondGroup = {
+  [key in number]: BondType
+}
+
 class Molecule {
   atoms: Array<Atom>
-  bonds: Record<number, Array<MoleculeBond>>
+  bonds: Record<number, BondGroup>
 
-  constructor(atoms: Array<Atom>, bonds: Record<number, Array<MoleculeBond>>) {
+  constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
     this.atoms = atoms
     this.bonds = bonds
   }
@@ -34,10 +38,10 @@ class Molecule {
     type: BondType = 'single'
   ) {
     if (start in this.bonds) {
-      this.bonds[start].push({ end: end, bond: type })
+      this.bonds[start][end] = type
       return
     }
-    this.bonds[start] = [{ end: end, bond: type }]
+    this.bonds[start] = { [end]: type }
   }
 
   public addBond(start: number, end: number, type: BondType = 'single'): void {
@@ -60,16 +64,18 @@ class Molecule {
     if (!isValidStartingConnection) {
       return []
     }*/
-    let neighbours: Array<MoleculeBond> = this.bonds[direction]
+    let bondEndings: BondGroup = this.bonds[direction]
+    let neighbours: Array<number> = Object.keys(bondEndings).map((x) => +x)
+    let length: number = neighbours.length
     let longestChain: Array<number> = []
-    for (let i = 0; i < neighbours.length; i++) {
-      let neighbour: MoleculeBond = neighbours[i]
-      if (neighbour.end === start) {
+    for (let i = 0; i < length; i++) {
+      let bond: BondType = bondEndings[i]
+      if (neighbours[i] === start) {
         continue
       }
       let longestNeighbourChain = this.find_most_important_C_chain_part(
         direction,
-        neighbour.end
+        neighbours[i]
       )
       if (longestNeighbourChain.length > longestChain.length) {
         longestChain = longestNeighbourChain
@@ -83,11 +89,10 @@ class Molecule {
       return []
     }
     let bonds: Array<BondType> = []
-    console.log(this.bonds)
     for (let i: number = 0; i < chain.length; i++) {
-      console.log(chain[i])
-      console.log(chain[i + 1])
-      bonds.push(this.bonds[chain[i]][chain[i + 1]].bond)
+      if (i + 1 < chain.length) {
+        bonds.push(this.bonds[chain[i]][chain[i + 1]])
+      }
     }
     return bonds
   }
@@ -133,21 +138,26 @@ class Molecule {
     if (startC === undefined) {
       throw Error()
     }
-    let neighbours: Array<MoleculeBond> = this.bonds[startC]
-    if (neighbours == undefined || neighbours?.length == 0) {
+    let bondGroup: BondGroup = this.bonds[startC]
+    if (bondGroup === undefined) {
       return [startC]
     }
-    if (neighbours.length == 1) {
+    let neighbours: Array<number> = Object.keys(bondGroup).map((x) => +x)
+    let length: number = neighbours.length
+    if (neighbours == undefined || length == 0) {
+      return [startC]
+    }
+    if (length == 1) {
       return [startC].concat(
-        this.find_most_important_C_chain_part(startC, neighbours[0].end)
+        this.find_most_important_C_chain_part(startC, neighbours[0])
       )
     }
-    if (neighbours.length == 2) {
-      return this.find_most_important_C_chain_part(startC, neighbours[0].end)
+    if (length == 2) {
+      return this.find_most_important_C_chain_part(startC, neighbours[0])
         .reverse()
         .concat(
           [startC],
-          this.find_most_important_C_chain_part(startC, neighbours[1].end)
+          this.find_most_important_C_chain_part(startC, neighbours[1])
         )
     }
 
@@ -157,7 +167,7 @@ class Molecule {
     for (let i = 0; i < neighbours.length; i++) {
       let chain: Array<number> = this.find_most_important_C_chain_part(
         startC,
-        neighbours[i].end
+        neighbours[i]
       )
       if (this.compare_C_chain_importance(chain, longest_chain)) {
         second_longest_chain = longest_chain
@@ -222,19 +232,13 @@ class Molecule {
       return ''
     }
 
-    console.log(this.bonds)
-
     let longest_chain: Array<number> = this.find_most_important_C_chain()
     let longest_chain_length: number = longest_chain.length
     let longest_chain_bonds: Array<BondType> =
       this.get_C_chain_bonds(longest_chain)
 
-    console.log(longest_chain_bonds)
-
     let { single, double, triple } =
       this.get_bond_location_in_C_chain(longest_chain_bonds)
-
-    console.log(double)
 
     let alcane_beginning =
       longest_chain_length in language.alcane_exceptions
@@ -249,9 +253,10 @@ class Molecule {
       }${language.alcine_ending}`
     }
     if (double.length !== 0) {
-      result = `-${double.join(',')}-${
-        double.length >= 2 ? Numbers.number_to_string(double.length) : ''
-      }${language.alcene_ending}`
+      result =
+        `-${double.join(',')}-${
+          double.length >= 2 ? Numbers.number_to_string(double.length) : ''
+        }${language.alcene_ending}` + result
     }
     if (result === '') {
       result = language.alcane_ending

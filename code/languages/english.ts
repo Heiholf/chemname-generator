@@ -159,7 +159,7 @@ const English: LanguageSettings = {
   },
   alcane_ending: 'ane',
   alcene_ending: 'ene',
-  alcine_ending: 'ine',
+  alcine_ending: 'yne',
   alcane_exceptions: {
     1: 'metha',
     2: 'etha',
