@@ -1,5 +1,6 @@
 import English from './languages/english'
 import Deutsch from './languages/deutsch'
+import { ElementSymbol } from './constants'
 
 export interface LanguageSettings {
   tens_ending: string
@@ -14,11 +15,12 @@ export interface LanguageSettings {
   number_exceptions: Record<number, string>
   one_digit_names: Record<number, string>
   lone_one_digit_names: Record<number, string>
+  atom_names: Record<ElementSymbol, string>
 }
 
 interface LanguagesInterface {
-  English
-  Deutsch
+  English: LanguageSettings
+  Deutsch: LanguageSettings
 }
 
 const Languages: LanguagesInterface = {

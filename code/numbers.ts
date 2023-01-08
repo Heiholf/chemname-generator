@@ -1,12 +1,10 @@
 import { reverseString } from './functions'
 import Exceptions from './exceptions'
 import Languages, { LanguageSettings } from './languages'
+import LanguageHandler from './language_handler'
 
-function one_digit_number_to_string(
-  num: number,
-  lone: boolean = true,
-  language: LanguageSettings = Languages.English
-): string {
+function one_digit_number_to_string(num: number, lone: boolean = true): string {
+  let language = LanguageHandler.Instance.language
   if (lone) {
     return language.lone_one_digit_names[num]
   }
@@ -16,11 +14,11 @@ function one_digit_number_to_string(
 function two_digit_number_to_string(
   tens: number,
   ones: number,
-  lone: boolean = true,
-  language: LanguageSettings = Languages.English
+  lone: boolean = true
 ): string {
+  let language = LanguageHandler.Instance.language
   if (tens == 0) {
-    return one_digit_number_to_string(ones, lone, language)
+    return one_digit_number_to_string(ones, lone)
   }
   if (tens == 1) {
     return language.one_digit_names[ones] + language.tens_ending
@@ -44,11 +42,11 @@ function two_digit_number_to_string(
 function three_digit_number_to_string(
   hundreds: number,
   tens: number,
-  ones: number,
-  language: LanguageSettings = Languages.English
+  ones: number
 ): string {
+  let language = LanguageHandler.Instance.language
   if (hundreds == 0) {
-    return two_digit_number_to_string(tens, ones, true, language)
+    return two_digit_number_to_string(tens, ones, true)
   }
   if (hundreds === 1) {
     return (
@@ -56,8 +54,8 @@ function three_digit_number_to_string(
     )
   }
   return (
-    two_digit_number_to_string(tens, ones, true, language) +
-    one_digit_number_to_string(hundreds, true, language) +
+    two_digit_number_to_string(tens, ones, true) +
+    one_digit_number_to_string(hundreds, true) +
     language.hundreds_ending
   )
 }
@@ -66,21 +64,21 @@ function four_digit_number_to_string(
   thousands: number,
   hundreds: number,
   tens: number,
-  ones: number,
-  language: LanguageSettings = Languages.English
+  ones: number
 ): string {
+  let language = LanguageHandler.Instance.language
   if (thousands == 0) {
-    return three_digit_number_to_string(hundreds, tens, ones, language)
+    return three_digit_number_to_string(hundreds, tens, ones)
   }
   if (thousands === 1) {
     return (
-      three_digit_number_to_string(hundreds, tens, ones, language) +
+      three_digit_number_to_string(hundreds, tens, ones) +
       language.thousands_name
     )
   }
   return (
-    three_digit_number_to_string(hundreds, tens, ones, language) +
-    one_digit_number_to_string(thousands, true, language) +
+    three_digit_number_to_string(hundreds, tens, ones) +
+    one_digit_number_to_string(thousands, true) +
     language.thousands_ending
   )
 }
@@ -109,7 +107,7 @@ function number_to_string(
 }
 
 interface NumbersInterface {
-  number_to_string: (number) => string
+  number_to_string: (x: number) => string
 }
 
 const Numbers: NumbersInterface = {

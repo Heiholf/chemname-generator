@@ -48,7 +48,7 @@ describe('Testing numbers.ts file:', () => {
   for (let input in tests) {
     let output: string = tests[input]
     test(`{${input} -> ${output}}`, () => {
-      expect(Numbers.number_to_string(input)).toBe(output)
+      expect(Numbers.number_to_string(+input)).toBe(output)
     })
   }
 })
