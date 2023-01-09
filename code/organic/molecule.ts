@@ -4,11 +4,6 @@ import Numbers from '../numbers'
 import Atom from './atom'
 import { BondType } from './bond'
 
-interface MoleculeBond {
-  end: number
-  bond: BondType
-}
-
 type BondTypeCallback<T> = {
   single: T
   double: T
@@ -19,17 +14,28 @@ type BondGroup = {
   [key in number]: BondType
 }
 
+type AtomDict = {
+  [key in number]: Atom
+}
+
 class Molecule {
-  atoms: Array<Atom>
+  atoms: AtomDict
+  current_highest_atom_index: number
   bonds: Record<number, BondGroup>
 
   constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
     this.atoms = atoms
     this.bonds = bonds
+    this.current_highest_atom_index = 0
+  }
+
+  private get atom_count() {
+    return Object.keys(this.atoms).length
   }
 
   public addAtom(new_atom: Atom): void {
-    this.atoms.push(new_atom)
+    this.atoms[this.current_highest_atom_index + 1] = new_atom
+    this.current_highest_atom_index++
   }
 
   private addOneDirectionalBond(
@@ -228,7 +234,7 @@ class Molecule {
 
   public generate_name(): string | undefined {
     let language: LanguageSettings = LanguageHandler.Instance.language
-    if (this.atoms.length == 0) {
+    if (this.atom_count == 0) {
       return ''
     }
 
