@@ -23,10 +23,39 @@ class Molecule {
   current_highest_atom_index: number
   bonds: Record<number, BondGroup>
 
-  constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
+  private constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
     this.atoms = atoms
     this.bonds = bonds
     this.current_highest_atom_index = 0
+  }
+
+  public static create = {
+    fromAlkane: this.fromAlkane,
+  }
+
+  private static fromAlkane(
+    count: number,
+    double_bond_locations: Array<number> = [],
+    triple_bond_locations: Array<number> = []
+  ): Molecule {
+    let molecule: Molecule = new Molecule(Array(count).fill(new Atom('C')), {})
+    let unassigned_bonds: Array<boolean> = Array(count).fill(true)
+    double_bond_locations.forEach((location: number) => {
+      molecule.addBond(location - 1, location, 'double')
+      unassigned_bonds[location - 1] = false
+    })
+    triple_bond_locations.forEach((location: number) => {
+      molecule.addBond(location - 1, location, 'triple')
+      unassigned_bonds[location - 1] = false
+    })
+    unassigned_bonds.forEach((value: boolean, location: number) => {
+      if (value) {
+        return
+      }
+      molecule.addBond(location - 1, location, 'single')
+      unassigned_bonds[location - 1] = true
+    })
+    return molecule
   }
 
   private get atom_count() {
