@@ -3,68 +3,56 @@ import LanguageHandler from '../language_handler'
 import Numbers from '../numbers'
 import Atom from './atom'
 import { BondType } from './bond'
-
-type BondTypeCallback<T> = {
-  single: T
-  double: T
-  triple: T
-}
-
-type BondGroup = {
-  [key in number]: BondType
-}
-
-type AtomDict = {
-  [key in number]: Atom
-}
+import { create as create_molecule } from './molecules/create'
+import {
+  AtomDict,
+  BondGroup,
+  BondTypeCallback,
+} from './molecules/molecule.types'
 
 class Molecule {
   atoms: AtomDict
   current_highest_atom_index: number
   bonds: Record<number, BondGroup>
 
-  private constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
+  constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
     this.atoms = atoms
     this.bonds = bonds
     this.current_highest_atom_index = 0
   }
 
-  public static create = {
-    fromAlkane: this.fromAlkane,
-  }
-
-  private static fromAlkane(
-    count: number,
-    double_bond_locations: Array<number> = [],
-    triple_bond_locations: Array<number> = []
-  ): Molecule {
-    let molecule: Molecule = new Molecule(Array(count).fill(new Atom('C')), {})
-    let unassigned_bonds: Array<boolean> = Array(count).fill(true)
-    double_bond_locations.forEach((location: number) => {
-      molecule.addBond(location - 1, location, 'double')
-      unassigned_bonds[location - 1] = false
-    })
-    triple_bond_locations.forEach((location: number) => {
-      molecule.addBond(location - 1, location, 'triple')
-      unassigned_bonds[location - 1] = false
-    })
-    unassigned_bonds.forEach((value: boolean, location: number) => {
-      if (value) {
-        return
-      }
-      molecule.addBond(location - 1, location, 'single')
-      unassigned_bonds[location - 1] = true
-    })
-    return molecule
-  }
+  public static create = create_molecule
 
   private get atom_count() {
     return Object.keys(this.atoms).length
   }
 
+  private get bond_count() {
+    return Object.keys(this.bonds).length
+  }
+
   public addAtom(new_atom: Atom): void {
     this.atoms[this.current_highest_atom_index + 1] = new_atom
     this.current_highest_atom_index++
+  }
+
+  public editAtom(index: number, edited_atom: Atom): void {
+    this.atoms[index] = edited_atom
+  }
+
+  public deleteAtomRaw(index: number): void {
+    delete this.atoms[index]
+  }
+
+  public deleteAtom(index: number): void {
+    this.deleteAtomRaw(index)
+    delete this.bonds[index]
+    for (let i: number = 0; i < this.bond_count; i++) {
+      let bond: BondGroup = Object.values(this.bonds)[i]
+      if (index in bond) {
+        delete bond[index]
+      }
+    }
   }
 
   private addOneDirectionalBond(
@@ -88,23 +76,11 @@ class Molecule {
     start: number,
     direction: number
   ): Array<number> {
-    // Checks if given bond is valid, probably unnecessary and causing extra computations
-    /*let isValidStartingConnection = false
-    for (let bondProps in this.bonds[start]) {
-      if (this.bonds[start][bondProps].end == direction) {
-        isValidStartingConnection = true
-        break
-      }
-    }
-    if (!isValidStartingConnection) {
-      return []
-    }*/
     let bondEndings: BondGroup = this.bonds[direction]
     let neighbours: Array<number> = Object.keys(bondEndings).map((x) => +x)
     let length: number = neighbours.length
     let longestChain: Array<number> = []
     for (let i = 0; i < length; i++) {
-      let bond: BondType = bondEndings[i]
       if (neighbours[i] === start) {
         continue
       }
