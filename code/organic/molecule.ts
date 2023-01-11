@@ -1,4 +1,5 @@
 import { off } from 'process'
+import { replace_last_occurence_of_any_substring_in_string } from '../functions'
 import { LanguageSettings } from '../languages'
 import LanguageHandler from '../language_handler'
 import Numbers from '../numbers'
@@ -19,7 +20,7 @@ class Molecule {
   constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
     this.atoms = atoms
     this.bonds = bonds
-    this.current_highest_atom_index = atoms.length
+    this.current_highest_atom_index = atoms.length - 1
   }
 
   public static create = create_molecule
@@ -168,9 +169,9 @@ class Molecule {
     let length: number = neighbours.length
     let longestChain: Array<number> = []
     for (let i = 0; i < length; i++) {
-      if (neighbours[i] === start) {
-        continue
-      }
+      if (neighbours[i] === start) continue
+
+      if (this.atoms[neighbours[i]].symbol !== 'C') continue
       let longestNeighbourChain = this.find_most_important_C_chain_part(
         direction,
         neighbours[i]
@@ -280,9 +281,10 @@ class Molecule {
     return longest_chain.concat([startC], second_longest_chain)
   }
 
-  private get_side_chain_names_in_C_chain(chain: Array<number>) {
-    console.log('-------')
-    console.log(chain)
+  private get_side_chain_names_in_C_chain(
+    chain: Array<number>,
+    numbering_offset: number = 0
+  ) {
     let location_to_names: Record<number, Array<string>> = {}
     let language: LanguageSettings = LanguageHandler.Instance.language
     for (let i: number = 0; i < chain.length; i++) {
@@ -299,21 +301,33 @@ class Molecule {
             neighbour_atom_index
           )
 
-          let side_chain_name: string = this.generate_name_of_chain(side_chain)
+          let side_chain_name: string = this.generate_name_of_chain(
+            side_chain,
+            1,
+            '(',
+            ')'
+          )
+
+          console.log(side_chain_name)
 
           this.addBond(atom_index, neighbour_atom_index, bond)
           //TODO: Does not work properly if alcane/-ene/-ine endings have different lengths
-          side_chain_name =
-            side_chain_name.slice(
-              0,
-              side_chain_name.length - language.alcane_ending.length
-            ) +
+
+          side_chain_name = replace_last_occurence_of_any_substring_in_string(
+            side_chain_name,
+            [
+              language.alcane_ending,
+              language.alcene_ending,
+              language.alcine_ending,
+            ],
             language.side_chain_ending +
-            (bond === 'single'
-              ? ''
-              : bond === 'double'
-              ? language.double_bond_side_chain_ending
-              : language.triple_bond_side_chain_ending)
+              (bond === 'single'
+                ? ''
+                : bond === 'double'
+                ? language.double_bond_side_chain_ending
+                : language.triple_bond_side_chain_ending)
+          )
+
           if (i in location_to_names) {
             location_to_names[i].push(side_chain_name)
           } else {
@@ -343,7 +357,9 @@ class Molecule {
     for (let i in side_chain_names) {
       let side_chain_name: string = side_chain_names[i]
       names.push(
-        names_to_location[side_chain_name].join(',') +
+        names_to_location[side_chain_name]
+          .map((x) => x + numbering_offset)
+          .join(',') +
           '-' +
           (names_to_location[side_chain_name].length > 1
             ? Numbers.number_to_string(
@@ -404,7 +420,12 @@ class Molecule {
     }
   }
 
-  private generate_name_of_chain(chain: Array<number>): string {
+  private generate_name_of_chain(
+    chain: Array<number>,
+    numbering_offset: number = 0,
+    start_delimiter: string = '',
+    end_delimiter: string = ''
+  ): string {
     let language: LanguageSettings = LanguageHandler.Instance.language
     if (chain.length == 0) {
       return ''
@@ -439,10 +460,10 @@ class Molecule {
 
     result = alcane_beginning.slice(0, alcane_beginning.length - 1) + result
 
-    result = this.get_side_chain_names_in_C_chain(chain) + result
+    result =
+      this.get_side_chain_names_in_C_chain(chain, numbering_offset) + result
 
-    console.log(result, result.length)
-    return result
+    return start_delimiter + result + end_delimiter
   }
 
   public generate_name(): string | undefined {
