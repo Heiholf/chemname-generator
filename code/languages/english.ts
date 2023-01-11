@@ -168,7 +168,7 @@ const English: LanguageSettings = {
   },
   side_chain_ending: 'yl',
   double_bond_side_chain_ending: 'en',
-  triple_bond_side_chain_ending: 'yn',
+  triple_bond_side_chain_ending: 'idyne',
 }
 
 export default English
