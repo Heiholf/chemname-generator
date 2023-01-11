@@ -1,5 +1,8 @@
 import { off } from 'process'
-import { replace_last_occurence_of_any_substring_in_string } from '../functions'
+import {
+  remove_innermost_delimiter_pair_from_string,
+  replace_last_occurence_of_any_substring_in_string,
+} from '../functions'
 import { LanguageSettings } from '../languages'
 import LanguageHandler from '../language_handler'
 import Numbers from '../numbers'
@@ -308,11 +311,8 @@ class Molecule {
             ')'
           )
 
-          console.log(side_chain_name)
 
           this.addBond(atom_index, neighbour_atom_index, bond)
-          //TODO: Does not work properly if alcane/-ene/-ine endings have different lengths
-
           side_chain_name = replace_last_occurence_of_any_substring_in_string(
             side_chain_name,
             [
@@ -473,7 +473,9 @@ class Molecule {
     }
 
     let longest_chain: Array<number> = this.find_most_important_C_chain()
-    return this.generate_name_of_chain(longest_chain)
+    return remove_innermost_delimiter_pair_from_string(
+      this.generate_name_of_chain(longest_chain)
+    )
   }
 }
 

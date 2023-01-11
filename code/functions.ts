@@ -48,3 +48,44 @@ export function replace_last_occurence_of_any_substring_in_string(
     str.slice(start + searchValues[latest_index].length)
   )
 }
+
+/**
+ * Removed all the innermost delimiter pairs in a string locally.
+ * Locally means that it removes all delimiter pairs with no other delimiter pait inside of it and not the delimiter pair with the most global depth.
+ *
+ * @param str The string to be checked
+ * @param start_delimiter The opening delimiting character *(default: "(")*
+ * @param end_delimiter The closing delimiting character *(default: ")")*
+ * @returns Copy of "str" with the innermost delimiter pair removed
+ */
+export function remove_innermost_delimiter_pair_from_string(
+  str: string,
+  start_delimiter: string = '(',
+  end_delimiter: string = ')'
+): string {
+  let indices_to_be_removed: Array<number> = []
+  let last_start_delimiter_index: number | undefined = undefined
+  for (let i = 0; i < str.length; i++) {
+    let c: string = str[i]
+    if (c == start_delimiter) {
+      last_start_delimiter_index = i
+      continue
+    }
+    if (last_start_delimiter_index == undefined) {
+      continue
+    }
+    if (c == end_delimiter) {
+      indices_to_be_removed.push(last_start_delimiter_index!)
+      indices_to_be_removed.push(i)
+      last_start_delimiter_index = undefined
+    }
+  }
+
+  let result = str
+  for (let i = indices_to_be_removed.length - 1; i >= 0; i--) {
+    result =
+      result.slice(0, indices_to_be_removed[i]) +
+      result.slice(indices_to_be_removed[i] + 1)
+  }
+  return result
+}
