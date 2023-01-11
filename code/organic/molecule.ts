@@ -1,3 +1,4 @@
+import { off } from 'process'
 import { LanguageSettings } from '../languages'
 import LanguageHandler from '../language_handler'
 import Numbers from '../numbers'
@@ -18,32 +19,68 @@ class Molecule {
   constructor(atoms: Array<Atom>, bonds: Record<number, BondGroup>) {
     this.atoms = atoms
     this.bonds = bonds
-    this.current_highest_atom_index = 0
+    this.current_highest_atom_index = atoms.length
   }
 
   public static create = create_molecule
 
-  private get atom_count() {
+  /**
+   * Returns the number of atoms in the molecule.
+   *
+   * @returns {number} Number of atoms
+   */
+  private get atom_count(): number {
     return Object.keys(this.atoms).length
   }
 
-  private get bond_count() {
+  /**
+   * Returns the number of bonds between atoms in the molecule.
+   * Watch out! Returns the amount of bonds in the data structure,
+   * which do not have to match the bonds in the actual molecule.
+   *
+   * @returns {number} Number of bonds
+   */
+  private get bond_count(): number {
     return Object.keys(this.bonds).length
   }
 
-  public addAtom(new_atom: Atom): void {
+  /**
+   * Adds a new atom to the molecule.
+   *
+   * @param {Atom} new_atom The atom to be added
+   * @returns {number} The index of the new atom
+   */
+  public addAtom(new_atom: Atom): number {
     this.atoms[this.current_highest_atom_index + 1] = new_atom
     this.current_highest_atom_index++
+    return this.current_highest_atom_index
   }
 
+  /**
+   * Updates the atom with the given index to be the given atom.
+   *
+   * @param index Index of the atom to be edited
+   * @param edited_atom The new data for the atom
+   */
   public editAtom(index: number, edited_atom: Atom): void {
     this.atoms[index] = edited_atom
   }
 
+  /**
+   * Deletes the atom from the molecule.
+   * Does not delete bonds of the atom leading to problems.
+   *
+   * @param index The index of the atom to be deleted
+   */
   public deleteAtomRaw(index: number): void {
     delete this.atoms[index]
   }
 
+  /**
+   * Deletes the atom from the molecule (including all the bonds).
+   *
+   * @param index The index of the atom to be deleted
+   */
   public deleteAtom(index: number): void {
     this.deleteAtomRaw(index)
     delete this.bonds[index]
@@ -55,6 +92,13 @@ class Molecule {
     }
   }
 
+  /**
+   * Adds a bond from one atom to another but not vice versa.
+   *
+   * @param start The index of the atom where the bond starts
+   * @param end The index of the atom where the bond ends
+   * @param type The type of bond (default: "single")
+   */
   private addOneDirectionalBond(
     start: number,
     end: number,
@@ -67,9 +111,38 @@ class Molecule {
     this.bonds[start] = { [end]: type }
   }
 
+  /**
+   * Adds a bond in between atoms in both directions.
+   *
+   * @param start The index of one of the atoms in the bond
+   * @param end The index of the other atoms in the bond
+   * @param type The type of bond (default: "single")
+   */
   public addBond(start: number, end: number, type: BondType = 'single'): void {
     this.addOneDirectionalBond(start, end, type)
     this.addOneDirectionalBond(end, start, type)
+  }
+
+  /**
+   * Deletes a bond in between one atom to another but not vice versa.
+   *
+   * @param start The index of the atom where the bond starts
+   * @param end The index of the atom where the bond ends
+   */
+  public deleteBondRaw(start: number, end: number): void {
+    delete this.bonds[start][end]
+  }
+
+  /**
+   * Deletes the bond of two atoms in both directions.
+   *
+   * @param start The index of one of the atoms in the bond
+   * @param end The index of the other atoms in the bond
+   * @param type The type of bond (default: "single")
+   */
+  public deleteBond(start: number, end: number): void {
+    this.deleteBondRaw(start, end)
+    this.deleteBondRaw(end, start)
   }
 
   private find_most_important_C_chain_part(
@@ -193,6 +266,59 @@ class Molecule {
     return longest_chain.concat([startC], second_longest_chain)
   }
 
+  private get_side_chain_names_in_C_chain(chain: Array<number>) {
+    let names: Record<number, string> = {}
+    let language: LanguageSettings = LanguageHandler.Instance.language
+    for (let i: number = 0; i < chain.length; i++) {
+      let atom_index: number = chain[i]
+      let bonds: BondGroup = this.bonds[atom_index]
+      let bond_keys: Array<number> = Object.keys(bonds).map((x) => +x)
+      for (let j: number = 0; j < bond_keys.length; j++) {
+        let neighbour_atom_index: number = bond_keys[j]
+        if (!(neighbour_atom_index in chain)) {
+          let bond: BondType = bonds[neighbour_atom_index]
+          this.deleteBond(atom_index, neighbour_atom_index)
+          let side_chain: Array<number> = this.find_most_important_C_chain_part(
+            atom_index,
+            neighbour_atom_index
+          )
+          let side_chain_name: string = this.generate_name_of_chain(side_chain)
+          this.addBond(atom_index, neighbour_atom_index, bond)
+          //TODO: Does not work properly if alcane/-ene/-ine endings have different lengths
+          side_chain_name =
+            side_chain_name.slice(
+              0,
+              side_chain.length - language.alcane_ending.length - 1
+            ) + language.side_chain_ending
+          names[i] = side_chain_name
+        }
+      }
+    }
+
+    let name_key: Array<number> = Object.keys(names).map((x) => +x)
+    for (let i in name_key) {
+      let ikey: number = name_key[i]
+      let ivalue: string = names[ikey]
+      if (ivalue === undefined) continue
+      let repetitions: Array<number> = [ikey]
+      for (let j: number = +i + 1; j < name_key.length; j++) {
+        let jkey: number = name_key[j]
+        let jvalue: string = names[jkey]
+        if (jvalue === undefined) continue
+        if (ivalue === jvalue) {
+          delete names[jkey]
+          repetitions.push(jkey)
+        }
+      }
+      if (repetitions.length > 1) {
+        names[ikey] = Numbers.number_to_string(repetitions.length) + ivalue
+      }
+      names[ikey] = repetitions.sort().join(',') + '-' + names[ikey]
+    }
+    console.log(names)
+    return Object.values(names).join('-')
+  }
+
   private get_bond_location_in_C_chain(
     chain: Array<BondType>
   ): BondTypeCallback<Array<number>> {
@@ -218,9 +344,10 @@ class Molecule {
         triple_bond_locations.map((x: number) => x - chain.length + 1)
         double_bond_locations.map((x: number) => x - chain.length + 1)
         single_bond_locations.map((x: number) => x - chain.length + 1)
+
+        chain.reverse()
       }
-    }
-    if (double_bond_locations.length != 0) {
+    } else if (double_bond_locations.length != 0) {
       if (
         double_bond_locations[-1] - chain.length + 1 <
         double_bond_locations[0]
@@ -228,6 +355,8 @@ class Molecule {
         triple_bond_locations.map((x: number) => x - chain.length + 1)
         double_bond_locations.map((x: number) => x - chain.length + 1)
         single_bond_locations.map((x: number) => x - chain.length + 1)
+
+        chain.reverse()
       }
     }
     return {
@@ -237,16 +366,13 @@ class Molecule {
     }
   }
 
-  public generate_name(): string | undefined {
+  private generate_name_of_chain(chain: Array<number>): string {
     let language: LanguageSettings = LanguageHandler.Instance.language
-    if (this.atom_count == 0) {
+    if (chain.length == 0) {
       return ''
     }
-
-    let longest_chain: Array<number> = this.find_most_important_C_chain()
-    let longest_chain_length: number = longest_chain.length
-    let longest_chain_bonds: Array<BondType> =
-      this.get_C_chain_bonds(longest_chain)
+    let longest_chain_length: number = chain.length
+    let longest_chain_bonds: Array<BondType> = this.get_C_chain_bonds(chain)
 
     let { single, double, triple } =
       this.get_bond_location_in_C_chain(longest_chain_bonds)
@@ -275,7 +401,19 @@ class Molecule {
 
     result = alcane_beginning.slice(0, alcane_beginning.length - 1) + result
 
+    result = this.get_side_chain_names_in_C_chain(chain) + result
+
     return result
+  }
+
+  public generate_name(): string | undefined {
+    let language: LanguageSettings = LanguageHandler.Instance.language
+    if (this.atom_count == 0) {
+      return ''
+    }
+
+    let longest_chain: Array<number> = this.find_most_important_C_chain()
+    return this.generate_name_of_chain(longest_chain)
   }
 }
 

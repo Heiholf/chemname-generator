@@ -166,6 +166,7 @@ const English: LanguageSettings = {
     3: 'propa',
     4: 'buta',
   },
+  side_chain_ending: 'yl',
 }
 
 export default English

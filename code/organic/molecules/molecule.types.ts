@@ -1,5 +1,5 @@
-import Atom from "../atom"
-import { BondType } from "../bond"
+import Atom from '../atom'
+import { BondType } from '../bond'
 
 export type BondTypeCallback<T> = {
   single: T

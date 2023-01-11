@@ -19,6 +19,7 @@ export interface LanguageSettings {
   alcene_ending: string
   alcine_ending: string
   alcane_exceptions: Record<number, string>
+  side_chain_ending: string
 }
 
 interface LanguagesInterface {
