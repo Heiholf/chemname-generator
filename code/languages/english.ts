@@ -167,6 +167,8 @@ const English: LanguageSettings = {
     4: 'buta',
   },
   side_chain_ending: 'yl',
+  double_bond_side_chain_ending: 'en',
+  triple_bond_side_chain_ending: 'yn',
 }
 
 export default English

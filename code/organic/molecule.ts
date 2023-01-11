@@ -57,6 +57,20 @@ class Molecule {
   }
 
   /**
+   * Adds new atoms to the molecule.
+   *
+   * @param {Atom} new_atoms The atoms to be added
+   * @returns {Array<number>} The indices of the new atoms
+   */
+  public addAtoms(new_atoms: Array<Atom>): Array<number> {
+    let indices: Array<number> = []
+    for (let i: number = 0; i < new_atoms.length; i++) {
+      indices.push(this.addAtom(new_atoms[i]))
+    }
+    return indices
+  }
+
+  /**
    * Updates the atom with the given index to be the given atom.
    *
    * @param index Index of the atom to be edited
@@ -267,7 +281,9 @@ class Molecule {
   }
 
   private get_side_chain_names_in_C_chain(chain: Array<number>) {
-    let names: Record<number, string> = {}
+    console.log('-------')
+    console.log(chain)
+    let location_to_names: Record<number, Array<string>> = {}
     let language: LanguageSettings = LanguageHandler.Instance.language
     for (let i: number = 0; i < chain.length; i++) {
       let atom_index: number = chain[i]
@@ -275,47 +291,69 @@ class Molecule {
       let bond_keys: Array<number> = Object.keys(bonds).map((x) => +x)
       for (let j: number = 0; j < bond_keys.length; j++) {
         let neighbour_atom_index: number = bond_keys[j]
-        if (!(neighbour_atom_index in chain)) {
+        if (!chain.includes(neighbour_atom_index)) {
           let bond: BondType = bonds[neighbour_atom_index]
           this.deleteBond(atom_index, neighbour_atom_index)
           let side_chain: Array<number> = this.find_most_important_C_chain_part(
             atom_index,
             neighbour_atom_index
           )
+
           let side_chain_name: string = this.generate_name_of_chain(side_chain)
+
           this.addBond(atom_index, neighbour_atom_index, bond)
           //TODO: Does not work properly if alcane/-ene/-ine endings have different lengths
           side_chain_name =
             side_chain_name.slice(
               0,
-              side_chain.length - language.alcane_ending.length - 1
-            ) + language.side_chain_ending
-          names[i] = side_chain_name
+              side_chain_name.length - language.alcane_ending.length
+            ) +
+            language.side_chain_ending +
+            (bond === 'single'
+              ? ''
+              : bond === 'double'
+              ? language.double_bond_side_chain_ending
+              : language.triple_bond_side_chain_ending)
+          if (i in location_to_names) {
+            location_to_names[i].push(side_chain_name)
+          } else {
+            location_to_names[i] = [side_chain_name]
+          }
+        }
+      }
+    }
+    let names_to_location: Record<string, Array<number>> = {}
+    for (let location in location_to_names) {
+      let current_names: Array<string> = location_to_names[location]
+      for (let i in current_names) {
+        let current_name: string = current_names[i]
+        if (current_name in names_to_location) {
+          names_to_location[current_name].push(+location)
+        } else {
+          names_to_location[current_name] = [+location]
         }
       }
     }
 
-    let name_key: Array<number> = Object.keys(names).map((x) => +x)
-    for (let i in name_key) {
-      let ikey: number = name_key[i]
-      let ivalue: string = names[ikey]
-      if (ivalue === undefined) continue
-      let repetitions: Array<number> = [ikey]
-      for (let j: number = +i + 1; j < name_key.length; j++) {
-        let jkey: number = name_key[j]
-        let jvalue: string = names[jkey]
-        if (jvalue === undefined) continue
-        if (ivalue === jvalue) {
-          delete names[jkey]
-          repetitions.push(jkey)
-        }
-      }
-      if (repetitions.length > 1) {
-        names[ikey] = Numbers.number_to_string(repetitions.length) + ivalue
-      }
-      names[ikey] = repetitions.sort().join(',') + '-' + names[ikey]
+    let side_chain_names: Array<string> = Object.keys(names_to_location)
+    side_chain_names.sort()
+
+    let names: Array<string> = []
+
+    for (let i in side_chain_names) {
+      let side_chain_name: string = side_chain_names[i]
+      names.push(
+        names_to_location[side_chain_name].join(',') +
+          '-' +
+          (names_to_location[side_chain_name].length > 1
+            ? Numbers.number_to_string(
+                names_to_location[side_chain_name].length
+              )
+            : '') +
+          side_chain_name
+      )
     }
-    console.log(names)
+
     return Object.values(names).join('-')
   }
 
@@ -403,6 +441,7 @@ class Molecule {
 
     result = this.get_side_chain_names_in_C_chain(chain) + result
 
+    console.log(result, result.length)
     return result
   }
 

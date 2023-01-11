@@ -20,6 +20,8 @@ export interface LanguageSettings {
   alcine_ending: string
   alcane_exceptions: Record<number, string>
   side_chain_ending: string
+  double_bond_side_chain_ending: string
+  triple_bond_side_chain_ending: string //does not make sense chemically
 }
 
 interface LanguagesInterface {
